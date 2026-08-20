@@ -1,7 +1,3 @@
-"""
-Unit tests for data/ingestion.py (DataIngestion class)
-"""
-
 from unittest.mock import MagicMock, patch
 import pandas as pd
 import numpy as np
@@ -15,9 +11,7 @@ def data_ingestion():
 
 
 def test_clean_data_standardization_and_sorting(data_ingestion):
-    """
-    Test standardizing column headers, timestamp normalization, and chronological sorting.
-    """
+    """Test column standardization, date normalization, and sorting."""
     dates = pd.to_datetime(["2020-01-05", "2020-01-02", "2020-01-03"])
     raw_df = pd.DataFrame(
         {
@@ -33,10 +27,8 @@ def test_clean_data_standardization_and_sorting(data_ingestion):
 
     cleaned = data_ingestion.clean_data(raw_df)
 
-    # Verify column naming standardization
     assert list(cleaned.columns) == ["Open", "High", "Low", "Close", "Adj Close", "Volume"]
 
-    # Verify chronological sorting (ascending date index)
     assert list(cleaned.index) == [
         pd.Timestamp("2020-01-02"),
         pd.Timestamp("2020-01-03"),
@@ -45,9 +37,7 @@ def test_clean_data_standardization_and_sorting(data_ingestion):
 
 
 def test_clean_data_deduplication(data_ingestion):
-    """
-    Test that duplicate date timestamps are deduplicated deterministically (keeping first).
-    """
+    """Test deduplication keeping the first record."""
     dates = pd.to_datetime(["2020-01-02", "2020-01-02", "2020-01-03"])
     raw_df = pd.DataFrame(
         {
@@ -68,16 +58,14 @@ def test_clean_data_deduplication(data_ingestion):
 
 
 def test_clean_data_invalid_rows_filtered(data_ingestion):
-    """
-    Test filtering out invalid rows: Close <= 0, Open <= 0, High < Low.
-    """
+    """Test filtering of invalid OHLC rows."""
     dates = pd.to_datetime(["2020-01-02", "2020-01-03", "2020-01-06", "2020-01-07"])
     raw_df = pd.DataFrame(
         {
             "Open": [100.0, 100.0, -10.0, 100.0],
-            "High": [105.0, 90.0, 105.0, 105.0],  # row 1: High < Low (90 < 95)
+            "High": [105.0, 90.0, 105.0, 105.0],
             "Low": [98.0, 95.0, 95.0, 95.0],
-            "Close": [102.0, 98.0, 100.0, 0.0],  # row 3: Close == 0
+            "Close": [102.0, 98.0, 100.0, 0.0],
             "Adj Close": [102.0, 98.0, 100.0, 0.0],
             "Volume": [1000, 1000, 1000, 1000],
         },
@@ -86,17 +74,13 @@ def test_clean_data_invalid_rows_filtered(data_ingestion):
 
     cleaned = data_ingestion.clean_data(raw_df)
 
-    # Only row 0 ("2020-01-02") is valid
     assert len(cleaned) == 1
     assert cleaned.index[0] == pd.Timestamp("2020-01-02")
 
 
 def test_clean_data_ffill_isolated_gap(data_ingestion):
-    """
-    Test that an isolated single-day business gap is forward-filled.
-    Mon (Jan 6), Wed (Jan 8) -> Tue (Jan 7) missing.
-    """
-    dates = pd.to_datetime(["2020-01-06", "2020-01-08"])  # Mon and Wed (Tue Jan 7 missing)
+    """Test forward-filling isolated single-day gaps."""
+    dates = pd.to_datetime(["2020-01-06", "2020-01-08"])
     raw_df = pd.DataFrame(
         {
             "Open": [100.0, 110.0],
@@ -111,18 +95,14 @@ def test_clean_data_ffill_isolated_gap(data_ingestion):
 
     cleaned = data_ingestion.clean_data(raw_df)
 
-    # Jan 7 (Tuesday) should be forward-filled from Jan 6
     assert len(cleaned) == 3
     assert pd.Timestamp("2020-01-07") in cleaned.index
     assert cleaned.loc["2020-01-07", "Close"] == 102.0
 
 
 def test_clean_data_multi_day_gap_not_ffilled(data_ingestion):
-    """
-    Test that multi-day business gaps (>1 day) are NOT forward-filled.
-    Mon (Jan 6), Thu (Jan 9) -> Tue & Wed missing (2 business days gap).
-    """
-    dates = pd.to_datetime(["2020-01-06", "2020-01-09"])  # Mon and Thu
+    """Test multi-day business gaps are not forward-filled."""
+    dates = pd.to_datetime(["2020-01-06", "2020-01-09"])
     raw_df = pd.DataFrame(
         {
             "Open": [100.0, 110.0],
@@ -137,7 +117,6 @@ def test_clean_data_multi_day_gap_not_ffilled(data_ingestion):
 
     cleaned = data_ingestion.clean_data(raw_df)
 
-    # Multi-day gap should not be filled
     assert len(cleaned) == 2
     assert pd.Timestamp("2020-01-07") not in cleaned.index
     assert pd.Timestamp("2020-01-08") not in cleaned.index
@@ -145,9 +124,7 @@ def test_clean_data_multi_day_gap_not_ffilled(data_ingestion):
 
 @patch("data.ingestion.yf.Ticker")
 def test_fetch_data_mock(mock_ticker_cls, data_ingestion):
-    """
-    Test fetch_data using a mocked yfinance Ticker.
-    """
+    """Test fetch_data with yfinance mock."""
     mock_ticker = MagicMock()
     mock_df = pd.DataFrame(
         {
