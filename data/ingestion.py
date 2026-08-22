@@ -68,6 +68,14 @@ class DataIngestion:
         cleaned = cleaned[~cleaned.index.duplicated(keep="first")]
         cleaned = cleaned.sort_index(ascending=True)
 
+        # Corporate action adjustment (stock splits, bonus issues, dividends)
+        if "Adj Close" in cleaned.columns and "Close" in cleaned.columns:
+            adj_ratio = (cleaned["Adj Close"] / cleaned["Close"].replace(0, np.nan)).fillna(1.0)
+            cleaned["Open"] = cleaned["Open"] * adj_ratio
+            cleaned["High"] = cleaned["High"] * adj_ratio
+            cleaned["Low"] = cleaned["Low"] * adj_ratio
+            cleaned["Close"] = cleaned["Adj Close"]
+
         # Drop invalid rows
         valid_mask = (
             (cleaned["Close"] > 0)

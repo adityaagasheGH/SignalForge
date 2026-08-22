@@ -4,7 +4,7 @@ from .moving_averages import ema
 
 
 def rsi(close: pd.Series, period: int = 14) -> pd.Series:
-    """Relative Strength Index (RSI)."""
+    """Relative Strength Index (RSI). Warm-up: first (2 * period - 1) rows are NaN."""
     if period < 2:
         raise ValueError(f"RSI period must be >= 2, got {period}.")
 
@@ -20,7 +20,8 @@ def rsi(close: pd.Series, period: int = 14) -> pd.Series:
     rsi_series = 100 - (100 / (1 + rs))
     rsi_series = rsi_series.where(avg_loss != 0, other=100.0)
 
-    rsi_series.iloc[: period] = float("nan")
+    warmup = 2 * period - 1
+    rsi_series.iloc[:warmup] = float("nan")
     return rsi_series
 
 

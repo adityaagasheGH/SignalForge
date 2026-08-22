@@ -12,7 +12,14 @@ def compute_metrics(
     trade_log: list[dict[str, Any]],
     risk_free_rate: float = 0.0,
 ) -> dict[str, Any]:
-    """Compute performance metric suite."""
+    """
+    Compute performance metric suite from an equity curve and trade log.
+
+    :param equity_curve: Daily portfolio values Series indexed by date.
+    :param trade_log: List of trade dicts (each containing 'net_pnl', 'gross_pnl', 'bars_held').
+    :param risk_free_rate: Annual risk-free rate as decimal (default 0.0).
+    :return: Dict of performance metrics.
+    """
     metrics: dict[str, Any] = {}
 
     daily_returns = equity_curve.pct_change().dropna()

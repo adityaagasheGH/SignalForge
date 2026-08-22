@@ -93,9 +93,11 @@ class TestEMA:
 
 
 class TestRSI:
-    def test_warmup_nans(self, simple_close):
-        result = rsi(simple_close, period=14)
-        assert result.iloc[:14].isna().all()
+    def test_warmup_nans(self, ohlc_df):
+        result = rsi(ohlc_df["Close"], period=14)
+        warmup = 2 * 14 - 1
+        assert result.iloc[:warmup].isna().all()
+        assert pd.notna(result.iloc[warmup])
 
     def test_rsi_range(self, ohlc_df):
         result = rsi(ohlc_df["Close"], period=14)

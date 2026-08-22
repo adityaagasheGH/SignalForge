@@ -122,6 +122,30 @@ def test_clean_data_multi_day_gap_not_ffilled(data_ingestion):
     assert pd.Timestamp("2020-01-08") not in cleaned.index
 
 
+def test_clean_data_corporate_action_adjustment(data_ingestion):
+    """Test that OHLC prices are scaled proportionally when corporate actions occur."""
+    dates = pd.to_datetime(["2020-01-02", "2020-01-03"])
+    # 1:1 bonus issue scenario: bar 1 has raw Close 2000 but Adj Close 1000 (0.5 ratio)
+    raw_df = pd.DataFrame(
+        {
+            "Open": [2800.0, 1400.0],
+            "High": [2900.0, 1500.0],
+            "Low": [2700.0, 1300.0],
+            "Close": [2800.0, 1400.0],
+            "Adj Close": [1400.0, 1400.0],  # Bar 1 raw Close 2800 -> Adj Close 1400
+            "Volume": [1000, 2000],
+        },
+        index=dates,
+    )
+
+    cleaned = data_ingestion.clean_data(raw_df)
+
+    # Bar 1 Open (2800) should be adjusted by 0.5 ratio -> 1400
+    assert cleaned.loc["2020-01-02", "Open"] == pytest.approx(1400.0)
+    assert cleaned.loc["2020-01-02", "Close"] == pytest.approx(1400.0)
+    assert cleaned.loc["2020-01-03", "Close"] == pytest.approx(1400.0)
+
+
 @patch("data.ingestion.yf.Ticker")
 def test_fetch_data_mock(mock_ticker_cls, data_ingestion):
     """Test fetch_data with yfinance mock."""

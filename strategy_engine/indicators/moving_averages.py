@@ -13,6 +13,4 @@ def ema(close: pd.Series, period: int, adjust: bool = False) -> pd.Series:
     if period < 1:
         raise ValueError(f"EMA period must be >= 1, got {period}.")
 
-    result = close.ewm(span=period, adjust=adjust, min_periods=period).mean()
-    result.iloc[: period - 1] = float("nan")
-    return result
+    return close.ewm(span=period, adjust=adjust, min_periods=period).mean()
