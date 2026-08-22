@@ -297,13 +297,35 @@ Combines all evidence into one score, default weighting (configurable, never cla
 | Historical similar events | 10% |
 | Strategy consensus | 10% |
 
+**Two-framing output (required).** The final signal is never collapsed into a single "trust this" verdict. It always presents two framings side by side — a risk-adjusted/active framing and a passive/Buy-&-Hold framing — so the user applies their own risk tolerance rather than having one applied for them (see `docs/architecture_decisions.md`). The output always includes, in this order:
+
+**1. Best risk-adjusted strategy** — the top-ranked *active* strategy (excluding Buy & Hold). Shows its name, composite score (0–100), current BUY/HOLD/SELL signal, confidence %, and — as the headline metrics justifying the "risk-adjusted" framing — its Sharpe ratio and maximum drawdown.
+
+**2. Buy & Hold comparison** — shown *every time*, never omitted or hidden based on which side performed better (the point is transparency, not favoring one side). Shows Buy & Hold's total return over the same period, the best active strategy's total return for direct comparison, and Buy & Hold's actual rank in the full leaderboard of all 13 candidates (the 12 strategies plus Buy & Hold).
+
+**3. Recommendation** — two sentences, one per framing, filled from the actual numbers:
+- "If you want disciplined, risk-managed exposure with defined entries/exits → *[best active strategy]* is today's best-supported active choice."
+- "If you're optimizing for raw long-term return and can tolerate deep drawdowns → Buy & Hold has *[outperformed / underperformed]* the best active strategy tested on this stock, historically." — the outperformed/underperformed direction is derived from the real returns, never hardcoded.
+
 Output:
 
 ```
-Final Score: 78/100
-SIGNAL: BUY
-Confidence: 76%
+① BEST RISK-ADJUSTED STRATEGY
+   Donchian Breakout   Score: 78/100   SIGNAL: BUY   Confidence: 76%
+   Sharpe: 1.42        Max Drawdown: -18%
+
+② BUY & HOLD COMPARISON
+   Buy & Hold total return:       +64%
+   Best active total return:      +51%   (Donchian Breakout)
+   Buy & Hold leaderboard rank:   3 of 13
+
+③ RECOMMENDATION
+   • Risk-managed: Donchian Breakout is today's best-supported active choice.
+   • Raw return: Buy & Hold has OUTPERFORMED the best active strategy tested
+     on this stock, historically.
 ```
+
+The composite score, its confidence, and the divergence check below all still apply to the active-strategy framing (block ①); Buy & Hold in block ② is reported on total return and leaderboard rank, not run through the news/consensus fusion.
 
 **Conflict handling:** before the weighted sum is trusted at face value, a divergence check runs — if strategy evidence and news evidence point in materially opposite directions, confidence is capped and the output is pulled toward HOLD regardless of the raw weighted number. Example from spec: strategy BUY + consensus BUY but news STRONGLY NEGATIVE + historical news NEGATIVE + regime SIDEWAYS → final signal HOLD at reduced confidence, not a blind BUY.
 
@@ -353,7 +375,7 @@ Search a symbol → shows:
 - **Strategy Analysis** — best strategy, its score, its current signal, and the consensus tally.
 - **News** — recent headlines, sentiment, impact.
 - **Historical Events** — similar past news and how the stock reacted (or "insufficient evidence").
-- **Final Signal** — BUY/HOLD/SELL, confidence %, selected strategy, and the plain-language "Why?" explanation.
+- **Final Signal** — the two-framing structure from §18 rather than a single BUY/HOLD/SELL badge: the "Best risk-adjusted strategy" block (name, score, signal, confidence, Sharpe, max drawdown), the "Buy & Hold comparison" block (both total returns and Buy & Hold's leaderboard rank, always shown), and the two-sentence "Recommendation", alongside the plain-language "Why?" explanation.
 
 ---
 
