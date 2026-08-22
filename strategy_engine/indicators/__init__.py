@@ -11,6 +11,7 @@ from .moving_averages import sma, ema
 from .oscillators import rsi, stochastic, roc, macd
 from .channels_volatility import (
     bollinger_bands,
+    donchian_channels,
     atr,
     keltner_channels,
     adx,
@@ -24,6 +25,7 @@ __all__ = [
     "roc",
     "macd",
     "bollinger_bands",
+    "donchian_channels",
     "atr",
     "keltner_channels",
     "adx",

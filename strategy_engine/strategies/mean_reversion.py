@@ -24,8 +24,8 @@ class MeanReversionStrategy(BaseStrategy):
     DEFAULT_GRID: dict[str, list] = {
         "lookback": [10, 20, 30, 50],
         "num_std": [1.5, 2.0, 2.5, 3.0],
-        "entry_threshold": [1.0],
-        "exit_threshold": [1.0],
+        "entry_threshold": [0.75, 1.0, 1.25],
+        "exit_threshold": [0.5, 1.0, 1.25],
     }
 
     def __init__(

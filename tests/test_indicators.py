@@ -6,6 +6,7 @@ from strategy_engine.indicators.moving_averages import sma, ema
 from strategy_engine.indicators.oscillators import rsi, stochastic, roc, macd
 from strategy_engine.indicators.channels_volatility import (
     bollinger_bands,
+    donchian_channels,
     atr,
     keltner_channels,
     adx,
@@ -273,6 +274,69 @@ class TestBollingerBands:
         pd.testing.assert_series_equal(
             result_before["upper"].iloc[:-5],
             result_after["upper"].iloc[:-5],
+            check_names=False,
+        )
+
+
+class TestDonchianChannels:
+    @pytest.fixture
+    def hand_hl(self):
+        """Small hand-inspectable High/Low series."""
+        dates = pd.date_range("2020-01-01", periods=5, freq="D")
+        high = pd.Series([10.0, 12.0, 11.0, 15.0, 9.0], index=dates)
+        low = pd.Series([8.0, 9.0, 7.0, 10.0, 5.0], index=dates)
+        return high, low
+
+    def test_correct_value(self, hand_hl):
+        high, low = hand_hl
+        result = donchian_channels(high, low, period=3)
+        # row 2: upper=max(10,12,11)=12, lower=min(8,9,7)=7, middle=9.5
+        assert result["upper"].iloc[2] == pytest.approx(12.0)
+        assert result["lower"].iloc[2] == pytest.approx(7.0)
+        assert result["middle"].iloc[2] == pytest.approx(9.5)
+        # row 3: upper=max(12,11,15)=15, lower=min(9,7,10)=7, middle=11
+        assert result["upper"].iloc[3] == pytest.approx(15.0)
+        assert result["lower"].iloc[3] == pytest.approx(7.0)
+        assert result["middle"].iloc[3] == pytest.approx(11.0)
+        # row 4: upper=max(11,15,9)=15, lower=min(7,10,5)=5, middle=10
+        assert result["upper"].iloc[4] == pytest.approx(15.0)
+        assert result["lower"].iloc[4] == pytest.approx(5.0)
+        assert result["middle"].iloc[4] == pytest.approx(10.0)
+
+    def test_warmup_nans(self, ohlc_df):
+        result = donchian_channels(ohlc_df["High"], ohlc_df["Low"], period=20)
+        assert result["upper"].iloc[:19].isna().all()
+        assert pd.notna(result["upper"].iloc[19])
+
+    def test_upper_above_lower(self, ohlc_df):
+        result = donchian_channels(ohlc_df["High"], ohlc_df["Low"], period=10)
+        valid = result.dropna()
+        assert (valid["upper"] >= valid["lower"]).all()
+
+    def test_invalid_period(self, ohlc_df):
+        with pytest.raises(ValueError):
+            donchian_channels(ohlc_df["High"], ohlc_df["Low"], period=0)
+
+    def test_look_ahead_bias(self, ohlc_df):
+        """Future High/Low shock must not alter past Donchian values."""
+        result_before = donchian_channels(
+            ohlc_df["High"], ohlc_df["Low"], period=10
+        ).copy()
+
+        high_s = ohlc_df["High"].copy()
+        low_s = ohlc_df["Low"].copy()
+        high_s.iloc[-5:] = 99_999.0
+        low_s.iloc[-5:] = -99_999.0
+        result_after = donchian_channels(high_s, low_s, period=10)
+
+        pd.testing.assert_series_equal(
+            result_before["upper"].iloc[:-5],
+            result_after["upper"].iloc[:-5],
+            check_names=False,
+        )
+        pd.testing.assert_series_equal(
+            result_before["lower"].iloc[:-5],
+            result_after["lower"].iloc[:-5],
             check_names=False,
         )
 

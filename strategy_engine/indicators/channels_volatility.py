@@ -26,6 +26,40 @@ def bollinger_bands(
     )
 
 
+def donchian_channels(
+    high: pd.Series,
+    low: pd.Series,
+    period: int = 20,
+) -> pd.DataFrame:
+    """Donchian Channels (upper, middle, lower).
+
+    upper  = highest High over the last `period` bars (rolling max)
+    lower  = lowest Low over the last `period` bars (rolling min)
+    middle = (upper + lower) / 2
+
+    Warm-up: the first (period - 1) rows are NaN (min_periods=period).
+
+    No look-ahead: rolling windows include only the current and prior
+    bars, never future rows. Note the window at row T *does* include row
+    T's own High/Low — that is correct for the indicator itself. Callers
+    that need a breakout comparison against the *prior* channel (so today's
+    own bar cannot define the level it must break) must shift the result by
+    one bar; that shifting is the strategy's responsibility, not this
+    function's.
+    """
+    if period < 1:
+        raise ValueError(f"Donchian period must be >= 1, got {period}.")
+
+    upper = high.rolling(window=period, min_periods=period).max()
+    lower = low.rolling(window=period, min_periods=period).min()
+    middle = (upper + lower) / 2
+
+    return pd.DataFrame(
+        {"upper": upper, "middle": middle, "lower": lower},
+        index=high.index,
+    )
+
+
 def atr(
     high: pd.Series,
     low: pd.Series,

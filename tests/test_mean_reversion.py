@@ -197,6 +197,8 @@ class TestParameterCustomisation:
         grid = default_strategy.get_parameters()["grid"]
         assert grid["lookback"] == [10, 20, 30, 50]
         assert grid["num_std"] == [1.5, 2.0, 2.5, 3.0]
+        assert grid["entry_threshold"] == [0.75, 1.0, 1.25]
+        assert grid["exit_threshold"] == [0.5, 1.0, 1.25]
 
 
 class TestLookAheadBias:
